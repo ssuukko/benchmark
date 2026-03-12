@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: benchmark
+  datasource:
+    url: jdbc:postgresql://ep-wild-heart-ad3iaekk-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require
+    username: neondb_owner
+    password: npg_AS2rVM5KGqZE
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  thymeleaf:
+    cache: false
+
+logging:
+  level:
+    org.hibernate.SQL: debug

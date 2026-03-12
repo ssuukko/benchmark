@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BenchMark</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="page">
+    <h1>BenchMark</h1>
+    <p th:text="${currentWeek + ' AI model trend dashboard'}"></p>
+    <section>
+        <h2>This Week</h2>
+        <ul>
+            <li th:each="item : ${summary}" th:text="${item.modelName + ' : ' + item.mentionCount + ' mentions'}"></li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,44 @@
+:root {
+    --bg: #f4efe5;
+    --panel: #fffaf2;
+    --ink: #1f2a2e;
+    --accent: #b85042;
+}
+
+body {
+    margin: 0;
+    font-family: Georgia, serif;
+    background: radial-gradient(circle at top, #fff8ef 0%, var(--bg) 65%);
+    color: var(--ink);
+}
+
+.page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+}
+
+h1, h2 {
+    letter-spacing: 0.04em;
+}
+
+section, form, ul {
+    background: var(--panel);
+    border: 1px solid rgba(31, 42, 46, 0.12);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+input, button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 12px;
+}
+
+button {
+    background: var(--accent);
+    color: white;
+    border: 0;
+    cursor: pointer;
+}
