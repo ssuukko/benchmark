@@ -59,6 +59,18 @@ section, form, ul {
     font-size: 0.9rem;
 }
 
+.section-copy {
+    margin-top: 0;
+    line-height: 1.6;
+}
+
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
 .summary-list,
 .article-list {
     display: grid;
@@ -115,16 +127,34 @@ section, form, ul {
     margin: 0;
 }
 
+.action-status {
+    margin: 0;
+    color: var(--accent);
+}
+
 input, button {
     display: block;
-    width: 100%;
     margin: 10px 0;
     padding: 12px;
 }
 
 button {
+    width: auto;
+    min-width: 180px;
     background: var(--accent);
     color: white;
     border: 0;
+    border-radius: 12px;
     cursor: pointer;
+}
+
+.secondary-button {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid rgba(31, 42, 46, 0.2);
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
