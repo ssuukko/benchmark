@@ -8,13 +8,47 @@
 </head>
 <body>
 <main class="page">
-    <h1>BenchMark</h1>
-    <p th:text="${currentWeek + ' AI model trend dashboard'}"></p>
+    <header class="hero">
+        <p class="eyebrow">BenchMark</p>
+        <h1>Developer community AI trend dashboard</h1>
+        <p class="hero-copy" th:text="${currentWeek + ' 기준 언급량과 최근 게시글을 한 화면에서 확인합니다.'}"></p>
+    </header>
+
     <section>
-        <h2>This Week</h2>
-        <ul>
-            <li th:each="item : ${summary}" th:text="${item.modelName + ' : ' + item.mentionCount + ' mentions'}"></li>
+        <div class="section-head">
+            <h2>This Week</h2>
+            <span class="section-note" th:text="${currentWeek}"></span>
+        </div>
+        <ul class="summary-list" th:if="${!#lists.isEmpty(summary)}">
+            <li class="summary-item" th:each="item : ${summary}">
+                <strong th:text="${item.modelName}"></strong>
+                <span th:text="${item.mentionCount + ' mentions'}"></span>
+                <span th:text="${#numbers.formatDecimal(item.growthRate, 1, 1) + '% vs prev'}"></span>
+            </li>
         </ul>
+        <p class="empty-state" th:if="${#lists.isEmpty(summary)}">이번 주 집계 데이터가 아직 없습니다.</p>
+    </section>
+
+    <section>
+        <div class="section-head">
+            <h2>Recent Articles</h2>
+            <span class="section-note">latest 5</span>
+        </div>
+        <div class="article-list" th:if="${!#lists.isEmpty(recentArticles)}">
+            <article class="article-card" th:each="article : ${recentArticles}">
+                <div class="article-meta">
+                    <span class="source" th:text="${article.source}"></span>
+                    <span th:text="${'score ' + article.score}"></span>
+                    <span th:text="${'comments ' + article.commentCount}"></span>
+                </div>
+                <h3>
+                    <a th:href="${article.url}" th:text="${article.title}" target="_blank" rel="noopener noreferrer"></a>
+                </h3>
+                <p class="article-time"
+                   th:text="${article.collectedAt != null ? #temporals.format(article.collectedAt, 'yyyy-MM-dd HH:mm') + ' collected' : 'collection time unavailable'}"></p>
+            </article>
+        </div>
+        <p class="empty-state" th:if="${#lists.isEmpty(recentArticles)}">최근 게시글 데이터가 아직 없습니다.</p>
     </section>
 </main>
 </body>

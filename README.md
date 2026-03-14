@@ -391,10 +391,13 @@ DB 조회 → 집계 → Redis 캐시 저장 → 화면 표시
 git clone https://github.com/your-username/benchmark.git
 cd benchmark
 
-# 2. application.yml 설정
-#    DB, Redis, Mail 접속 정보 설정
+# 2. 환경변수 파일 준비
+cp .env.example .env
 
-# 3. 실행
+# 3. .env 수정
+#    DB 접속 정보 설정
+
+# 4. 실행
 ./gradlew bootRun
 ```
 

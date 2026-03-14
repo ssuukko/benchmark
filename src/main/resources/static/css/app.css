@@ -18,6 +18,23 @@ body {
     padding: 48px 20px 80px;
 }
 
+.hero {
+    margin-bottom: 24px;
+}
+
+.eyebrow {
+    margin: 0;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.8rem;
+}
+
+.hero-copy {
+    max-width: 680px;
+    line-height: 1.6;
+}
+
 h1, h2 {
     letter-spacing: 0.04em;
 }
@@ -27,6 +44,75 @@ section, form, ul {
     border: 1px solid rgba(31, 42, 46, 0.12);
     border-radius: 16px;
     padding: 20px;
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.section-note {
+    color: rgba(31, 42, 46, 0.66);
+    font-size: 0.9rem;
+}
+
+.summary-list,
+.article-list {
+    display: grid;
+    gap: 12px;
+}
+
+.summary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+.summary-item,
+.article-card {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid rgba(31, 42, 46, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.summary-item span,
+.article-meta,
+.article-time,
+.empty-state {
+    color: rgba(31, 42, 46, 0.78);
+}
+
+.article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.92rem;
+}
+
+.source {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.article-card h3 {
+    margin: 0;
+}
+
+.article-card a {
+    color: inherit;
+}
+
+.article-time,
+.empty-state {
+    margin: 0;
 }
 
 input, button {
