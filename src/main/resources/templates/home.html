@@ -92,7 +92,7 @@
 
             renderSummary(result.summary);
             renderArticles(result.recentArticles);
-            collectStatus.textContent = '수집 완료. 최신 목록과 집계를 반영했습니다.';
+            collectStatus.textContent = result.message ?? '수집 완료. 최신 목록과 집계를 반영했습니다.';
         } catch (error) {
             collectStatus.textContent = '수집 실행 중 오류가 발생했습니다.';
         } finally {
