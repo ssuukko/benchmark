@@ -2,19 +2,21 @@ spring:
   application:
     name: benchmark
   datasource:
-    url: jdbc:postgresql://ep-wild-heart-ad3iaekk-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require
-    username: neondb_owner
-    password: npg_AS2rVM5KGqZE
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/benchmark}
+    username: ${DB_USERNAME:benchmark}
+    password: ${DB_PASSWORD:benchmark}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
         format_sql: true
     open-in-view: false
   thymeleaf:
     cache: false
+  config:
+    import: optional:file:.env[.properties]
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    org.hibernate.SQL: ${LOG_SQL:debug}

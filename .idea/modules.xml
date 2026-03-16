@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BenchMark.main.iml" filepath="$PROJECT_DIR$/.idea/modules/BenchMark.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BenchMark.iml" filepath="$PROJECT_DIR$/.idea/modules/BenchMark.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/kr.co.glab.BenchMark.iml" filepath="$PROJECT_DIR$/.idea/modules/kr.co.glab.BenchMark.iml" />
     </modules>
   </component>
 </project>

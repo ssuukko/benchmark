@@ -8,14 +8,191 @@
 </head>
 <body>
 <main class="page">
-    <h1>BenchMark</h1>
-    <p th:text="${currentWeek + ' AI model trend dashboard'}"></p>
+    <header class="hero">
+        <p class="eyebrow">BenchMark</p>
+        <h1>Developer community AI trend dashboard</h1>
+        <p class="hero-copy" th:text="${currentWeek + ' 기준 언급량과 최근 게시글을 한 화면에서 확인합니다.'}"></p>
+    </header>
+
     <section>
-        <h2>This Week</h2>
-        <ul>
-            <li th:each="item : ${summary}" th:text="${item.modelName + ' : ' + item.mentionCount + ' mentions'}"></li>
+        <div class="section-head">
+            <h2>Collect Hacker News</h2>
+            <span class="section-note">manual trigger</span>
+        </div>
+        <p class="section-copy">버튼을 누르면 Hacker News Top 10을 수집하고, 현재 주간 집계도 다시 계산합니다.</p>
+        <div class="action-row">
+            <button id="collect-hn-button" type="button">HN 수집 실행</button>
+        </div>
+        <p id="collect-status" class="action-status" hidden></p>
+    </section>
+
+    <section>
+        <div class="section-head">
+            <h2>This Week</h2>
+            <span class="section-note" th:text="${currentWeek}"></span>
+        </div>
+        <ul id="summary-list" class="summary-list" th:if="${!#lists.isEmpty(summary)}">
+            <li class="summary-item" th:each="item : ${summary}">
+                <strong th:text="${item.modelName}"></strong>
+                <span th:text="${item.mentionCount + ' mentions'}"></span>
+                <span th:text="${#numbers.formatDecimal(item.growthRate, 1, 1) + '% vs prev'}"></span>
+            </li>
         </ul>
+        <ul id="summary-list" class="summary-list" th:if="${#lists.isEmpty(summary)}" hidden></ul>
+        <p id="summary-empty" class="empty-state" th:if="${#lists.isEmpty(summary)}">이번 주 집계 데이터가 아직 없습니다.</p>
+        <p id="summary-empty" class="empty-state" th:if="${!#lists.isEmpty(summary)}" hidden>이번 주 집계 데이터가 아직 없습니다.</p>
+    </section>
+
+    <section>
+        <div class="section-head">
+            <h2>Recent Articles</h2>
+            <span class="section-note">latest 5</span>
+        </div>
+        <div id="article-list" class="article-list" th:if="${!#lists.isEmpty(recentArticles)}">
+            <article class="article-card" th:each="article : ${recentArticles}">
+                <div class="article-meta">
+                    <span class="source" th:text="${article.source}"></span>
+                    <span th:text="${'score ' + article.score}"></span>
+                    <span th:text="${'comments ' + article.commentCount}"></span>
+                </div>
+                <h3>
+                    <a th:href="${article.url}" th:text="${article.title}" target="_blank" rel="noopener noreferrer"></a>
+                </h3>
+                <p class="article-time"
+                   th:text="${article.collectedAt != null ? #temporals.format(article.collectedAt, 'yyyy-MM-dd HH:mm') + ' collected' : 'collection time unavailable'}"></p>
+            </article>
+        </div>
+        <div id="article-list" class="article-list" th:if="${#lists.isEmpty(recentArticles)}" hidden></div>
+        <p id="article-empty" class="empty-state" th:if="${#lists.isEmpty(recentArticles)}">최근 게시글 데이터가 아직 없습니다.</p>
+        <p id="article-empty" class="empty-state" th:if="${!#lists.isEmpty(recentArticles)}" hidden>최근 게시글 데이터가 아직 없습니다.</p>
     </section>
 </main>
+<script>
+    const collectButton = document.getElementById('collect-hn-button');
+    const collectStatus = document.getElementById('collect-status');
+    const summaryList = document.getElementById('summary-list');
+    const summaryEmpty = document.getElementById('summary-empty');
+    const articleList = document.getElementById('article-list');
+    const articleEmpty = document.getElementById('article-empty');
+
+    collectButton.addEventListener('click', async () => {
+        collectButton.disabled = true;
+        collectStatus.hidden = false;
+        collectStatus.textContent = 'Hacker News 수집 중...';
+
+        try {
+            const response = await fetch('/api/collect/hacker-news', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(JSON.stringify(result, null, 2));
+            }
+
+            renderSummary(result.summary);
+            renderArticles(result.recentArticles);
+            collectStatus.textContent = '수집 완료. 최신 목록과 집계를 반영했습니다.';
+        } catch (error) {
+            collectStatus.textContent = '수집 실행 중 오류가 발생했습니다.';
+        } finally {
+            collectButton.disabled = false;
+        }
+    });
+
+    function renderSummary(summary) {
+        summaryList.innerHTML = '';
+
+        if (!summary || summary.length === 0) {
+            summaryList.hidden = true;
+            summaryEmpty.hidden = false;
+            return;
+        }
+
+        for (const item of summary) {
+            const listItem = document.createElement('li');
+            listItem.className = 'summary-item';
+            listItem.innerHTML = `
+                <strong>${escapeHtml(item.modelName)}</strong>
+                <span>${item.mentionCount} mentions</span>
+                <span>${formatGrowthRate(item.growthRate)}% vs prev</span>
+            `;
+            summaryList.appendChild(listItem);
+        }
+
+        summaryList.hidden = false;
+        summaryEmpty.hidden = true;
+    }
+
+    function renderArticles(articles) {
+        articleList.innerHTML = '';
+
+        if (!articles || articles.length === 0) {
+            articleList.hidden = true;
+            articleEmpty.hidden = false;
+            return;
+        }
+
+        for (const article of articles) {
+            const articleCard = document.createElement('article');
+            articleCard.className = 'article-card';
+            articleCard.innerHTML = `
+                <div class="article-meta">
+                    <span class="source">${escapeHtml(article.source)}</span>
+                    <span>score ${article.score}</span>
+                    <span>comments ${article.commentCount}</span>
+                </div>
+                <h3>
+                    <a href="${escapeAttribute(article.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
+                </h3>
+                <p class="article-time">${formatCollectedAt(article.collectedAt)}</p>
+            `;
+            articleList.appendChild(articleCard);
+        }
+
+        articleList.hidden = false;
+        articleEmpty.hidden = true;
+    }
+
+    function formatGrowthRate(value) {
+        const numeric = Number(value ?? 0);
+        return numeric.toFixed(1);
+    }
+
+    function formatCollectedAt(value) {
+        if (!value) {
+            return 'collection time unavailable';
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return 'collection time unavailable';
+        }
+
+        const formatted = new Intl.DateTimeFormat('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(date);
+
+        return `${formatted} collected`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function escapeAttribute(value) {
+        return escapeHtml(value);
+    }
+</script>
 </body>
 </html>
