@@ -8,4 +8,6 @@ public interface HackerNewsClient {
     List<Long> fetchTopStoryIds(int limit);
 
     HackerNewsItemDto fetchItem(Long id);
+
+    List<HackerNewsItemDto> fetchItems(List<Long> ids);
 }

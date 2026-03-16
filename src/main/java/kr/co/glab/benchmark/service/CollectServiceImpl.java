@@ -17,15 +17,17 @@ import kr.co.glab.benchmark.entity.TrendStat;
 import kr.co.glab.benchmark.repository.ArticleRepository;
 import kr.co.glab.benchmark.repository.TrendStatRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class CollectServiceImpl implements CollectService {
 
     private static final String SOURCE_HACKER_NEWS = "HACKERNEWS";
-    private static final int TOP_STORY_LIMIT = 10;
+    private static final int TOP_STORY_LIMIT = 30;
 
     private final HackerNewsClient hackerNewsClient;
     private final ArticleRepository articleRepository;
@@ -34,20 +36,26 @@ public class CollectServiceImpl implements CollectService {
     @Override
     @Transactional
     public HackerNewsCollectStatsDto collectHackerNewsTopStories() {
+        log.info("Starting Hacker News collection. topStoryLimit={}", TOP_STORY_LIMIT);
         List<Long> topStoryIds = hackerNewsClient.fetchTopStoryIds(TOP_STORY_LIMIT);
+        List<HackerNewsItemDto> items = hackerNewsClient.fetchItems(topStoryIds);
         int savedCount = 0;
         int skippedCount = 0;
         int aiMatchedCount = 0;
+        int duplicateCount = 0;
+        int invalidCount = 0;
 
-        for (Long storyId : topStoryIds) {
-            HackerNewsItemDto item = hackerNewsClient.fetchItem(storyId);
+        for (HackerNewsItemDto item : items) {
             if (!isCollectable(item)) {
+                log.debug("Skipping non-collectable HN item. storyId={}", item == null ? null : item.id());
                 skippedCount++;
+                invalidCount++;
                 continue;
             }
 
             String content = buildContent(item);
             if (!containsAiKeyword(content)) {
+                log.debug("Skipping non-AI HN item. storyId={} title={}", item.id(), item.title());
                 skippedCount++;
                 continue;
             }
@@ -57,17 +65,38 @@ public class CollectServiceImpl implements CollectService {
             String externalId = String.valueOf(item.id());
             Optional<Article> existing = articleRepository.findBySourceAndExternalId(SOURCE_HACKER_NEWS, externalId);
             if (existing.isPresent()) {
+                log.debug("Skipping duplicate HN item. storyId={} title={}", item.id(), item.title());
                 skippedCount++;
+                duplicateCount++;
                 continue;
             }
 
             articleRepository.save(toArticle(item, externalId, content));
+            log.info("Saved HN article. storyId={} score={} comments={} title={}",
+                    item.id(), item.score(), item.descendants(), item.title());
             savedCount++;
         }
 
         refreshCurrentWeekStats();
 
-        return new HackerNewsCollectStatsDto(topStoryIds.size(), savedCount, skippedCount, aiMatchedCount);
+        log.info(
+                "Finished Hacker News collection. fetchedCount={} savedCount={} aiMatchedCount={} duplicateCount={} invalidCount={} skippedCount={}",
+                topStoryIds.size(),
+                savedCount,
+                aiMatchedCount,
+                duplicateCount,
+                invalidCount,
+                skippedCount
+        );
+
+        return new HackerNewsCollectStatsDto(
+                topStoryIds.size(),
+                savedCount,
+                skippedCount,
+                aiMatchedCount,
+                duplicateCount,
+                invalidCount
+        );
     }
 
     private boolean isCollectable(HackerNewsItemDto item) {

@@ -22,7 +22,14 @@ public class CollectApiController {
     public HackerNewsCollectResponseDto collectHackerNews() {
         var stats = collectService.collectHackerNewsTopStories();
         return new HackerNewsCollectResponseDto(
-                "Hacker News 수집과 이번 주 집계를 반영했습니다.",
+                "Hacker News 수집 완료: %d건 조회, %d건 저장, %d건 AI 매칭, %d건 중복, %d건 무효, %d건 스킵".formatted(
+                        stats.fetchedCount(),
+                        stats.savedCount(),
+                        stats.aiMatchedCount(),
+                        stats.duplicateCount(),
+                        stats.invalidCount(),
+                        stats.skippedCount()
+                ),
                 stats,
                 trendService.getCurrentWeekSummary(),
                 articleService.getRecentArticles()
