@@ -20,3 +20,9 @@ spring:
 logging:
   level:
     org.hibernate.SQL: ${LOG_SQL:debug}
+
+scheduler:
+  hacker-news:
+    enabled: ${HACKER_NEWS_SCHEDULER_ENABLED:true}
+    cron: ${HACKER_NEWS_SCHEDULER_CRON:0 0 9 * * *}
+    zone: ${HACKER_NEWS_SCHEDULER_ZONE:Asia/Seoul}
