@@ -5,7 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,7 +16,16 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "trend_stats")
+@Table(
+        name = "trend_stats",
+        indexes = {
+                @Index(name = "idx_trend_stats_week", columnList = "week"),
+                @Index(name = "idx_trend_stats_model_name", columnList = "model_name")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_trend_stats_week_model_name", columnNames = {"week", "model_name"})
+        }
+)
 public class TrendStat {
 
     @Id
