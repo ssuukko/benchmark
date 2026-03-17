@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
@@ -58,7 +57,6 @@ public class Article {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
-    @Lob
-    @Column(name = "content_text")
+    @Column(name = "content_text", columnDefinition = "TEXT")
     private String contentText;
 }

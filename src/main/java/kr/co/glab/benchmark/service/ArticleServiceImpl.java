@@ -4,6 +4,7 @@ import java.util.List;
 import kr.co.glab.benchmark.dto.ArticleSummaryDto;
 import kr.co.glab.benchmark.repository.ArticleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,16 +15,6 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public List<ArticleSummaryDto> getRecentArticles() {
-        return articleRepository.findTop5ByOrderByCollectedAtDesc()
-                .stream()
-                .map(article -> new ArticleSummaryDto(
-                        article.getSource(),
-                        article.getScore(),
-                        article.getCommentCount(),
-                        article.getUrl(),
-                        article.getTitle(),
-                        article.getCollectedAt()
-                ))
-                .toList();
+        return articleRepository.findArticleSummariesOrderByCollectedAtDesc(PageRequest.of(0, 5));
     }
 }

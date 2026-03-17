@@ -31,10 +31,10 @@ public class TrendAggregationServiceImpl implements TrendAggregationService {
         String previousWeek = weekService.previousWeek();
         Map<String, Integer> currentCounts = calculateMentionCounts(currentWeek);
         Map<String, Integer> previousCounts = calculateMentionCounts(previousWeek);
-        int articleCount = articleRepository.findByCollectedAtBetween(
+        int articleCount = Math.toIntExact(articleRepository.countByCollectedAtBetween(
                 weekService.weekStart(currentWeek),
                 weekService.weekEnd(currentWeek)
-        ).size();
+        ));
 
         for (String modelName : TRACKED_MODELS) {
             TrendStat stat = trendStatRepository.findByWeekAndModelName(currentWeek, modelName)
