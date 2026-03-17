@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BenchMark Schedule Admin</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="admin-shell">
+    <aside class="admin-sidebar">
+        <div class="admin-brand">
+            <p class="eyebrow">BenchMark</p>
+            <h2>시간 설정</h2>
+            <p>자동 수집 시간, 사용 여부, 시간대를 한 번에 수정합니다.</p>
+        </div>
+        <nav class="admin-nav">
+            <a class="admin-nav-link" th:href="@{/admin/schedule}" th:classappend="${adminSection == 'schedule'} ? ' active' : ''">시간 수정</a>
+            <a class="admin-nav-link" th:href="@{/admin/main}">관리자 메인</a>
+            <a class="admin-nav-link" th:href="@{/}">홈으로</a>
+        </nav>
+    </aside>
+
+    <section class="admin-content">
+        <header class="admin-hero admin-hero-schedule">
+            <div class="admin-hero-copy">
+                <p class="eyebrow">시간 수정</p>
+                <h1>자동 수집 시간 설정</h1>
+                <p class="hero-copy">필요한 값만 빠르게 수정할 수 있도록 정리했습니다. 저장하면 다음 스케줄부터 새 값이 적용됩니다.</p>
+            </div>
+            <div class="admin-hero-side">
+                <span class="status-badge" th:classappend="${scheduler.enabled} ? ' on' : ' off'"
+                      th:text="${scheduler.enabled ? '현재 사용 중' : '현재 중지됨'}"></span>
+            </div>
+        </header>
+
+        <div class="admin-grid admin-grid-wide">
+            <section class="admin-panel">
+                <div class="section-head admin-panel-head">
+                    <div>
+                        <p class="panel-kicker">설정 입력</p>
+                        <h2>수집 스케줄 값</h2>
+                    </div>
+                </div>
+                <p class="notice success" th:if="${message}" th:text="${message}"></p>
+                <p class="notice error" th:if="${error}" th:text="${error}"></p>
+                <form th:action="@{/admin/schedule}" method="post" class="admin-form" id="schedule-form">
+                    <label class="field field-toggle">
+                        <span class="field-title">자동 수집 사용 여부</span>
+                        <span class="field-help">체크를 끄면 저장된 시간은 유지되지만 자동 실행은 멈춥니다.</span>
+                        <span class="toggle-row">
+                            <input type="checkbox" name="enabled" th:checked="${scheduler.enabled}">
+                            <strong th:text="${scheduler.enabled ? '사용' : '중지'}"></strong>
+                        </span>
+                    </label>
+
+                    <section class="field field-group">
+                        <div class="field-head">
+                            <span class="field-title">실행 방식</span>
+                            <span class="field-help">자주 쓰는 방식은 선택형으로, 필요하면 아래에서 cron을 직접 수정할 수 있습니다.</span>
+                        </div>
+                        <label class="field inline-field inline-field-wide preset-select-field">
+                            <span class="field-title">실행 방식 선택</span>
+                            <select id="schedule-preset" name="schedulePreset">
+                                <option value="daily">하루 1회</option>
+                                <option value="hourly">매시간 반복</option>
+                                <option value="custom">직접 입력</option>
+                            </select>
+                        </label>
+                        <div class="time-builder is-hidden" id="daily-builder">
+                            <label class="field inline-field inline-field-wide">
+                                <span class="field-title">실행 시각</span>
+                                <input type="time" id="daily-time" value="09:00">
+                            </label>
+                        </div>
+                        <div class="time-builder is-hidden" id="hourly-builder">
+                            <label class="field inline-field inline-field-wide">
+                                <span class="field-title">매시간 실행 분</span>
+                                <select id="hourly-minute"></select>
+                            </label>
+                        </div>
+                    </section>
+
+                    <label class="field">
+                        <span class="field-title">시간대</span>
+                        <span class="field-help">서버가 시간을 해석하는 기준입니다. 일반적으로 `Asia/Seoul`을 사용합니다.</span>
+                        <input type="text" name="zone" th:value="${scheduler.zone}" placeholder="Asia/Seoul">
+                    </label>
+                    <label class="field is-hidden" id="custom-cron-field">
+                        <span class="field-title">Cron 표현식</span>
+                        <span class="field-help">직접 입력을 선택한 경우에만 이 값을 그대로 사용합니다.</span>
+                        <input type="text" id="cron-input" name="cron" th:value="${scheduler.cron}" placeholder="0 0 9 * * *">
+                    </label>
+                    <div class="action-bar">
+                        <div class="action-copy">
+                            <strong>설정을 저장하면 다음 실행 시점부터 반영됩니다.</strong>
+                            <span>지금 저장해도 즉시 수집이 실행되지는 않습니다.</span>
+                        </div>
+                        <div class="action-row">
+                            <button type="submit">설정 저장</button>
+                            <a class="button-link secondary-button" th:href="@{/admin/main}">메인으로</a>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="admin-panel admin-panel-soft">
+                <div class="section-head admin-panel-head">
+                    <div>
+                        <p class="panel-kicker">도움말</p>
+                        <h2>입력 예시와 설명</h2>
+                    </div>
+                </div>
+                <div class="example-stack">
+                    <article class="example-item">
+                        <span class="example-label">매일 오전 9시</span>
+                        <code>0 0 9 * * *</code>
+                    </article>
+                    <article class="example-item">
+                        <span class="example-label">매일 오후 6시 30분</span>
+                        <code>0 30 18 * * *</code>
+                    </article>
+                    <article class="example-item">
+                        <span class="example-label">매시간 정각</span>
+                        <code>0 0 * * * *</code>
+                    </article>
+                </div>
+                <div class="example-box example-box-tips">
+                    <div class="example-box-head">
+                        <p class="example-title">설정 전에 보면 좋은 내용</p>
+                        <span class="section-note">운영 팁</span>
+                    </div>
+                    <div class="tip-list">
+                        <article class="tip-item">
+                            <strong>일반적인 운영</strong>
+                            <p>`하루 1회`만으로도 대부분 충분합니다.</p>
+                        </article>
+                        <article class="tip-item">
+                            <strong>시간대 설정</strong>
+                            <p>특별한 이유가 없으면 `Asia/Seoul`을 유지하는 편이 안전합니다.</p>
+                        </article>
+                        <article class="tip-item">
+                            <strong>직접 입력 사용 시점</strong>
+                            <p>특수한 반복 주기가 필요할 때만 `직접 입력`으로 cron을 수정하세요.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
+<script th:inline="javascript">
+    const scheduleForm = document.getElementById('schedule-form');
+    const cronInput = document.getElementById('cron-input');
+    const customCronField = document.getElementById('custom-cron-field');
+    const presetSelect = document.getElementById('schedule-preset');
+    const dailyBuilder = document.getElementById('daily-builder');
+    const hourlyBuilder = document.getElementById('hourly-builder');
+    const dailyTime = document.getElementById('daily-time');
+    const hourlyMinute = document.getElementById('hourly-minute');
+    const currentCron = /*[[${scheduler.cron}]]*/ '0 0 9 * * *';
+
+    fillNumericOptions(hourlyMinute, 60);
+
+    applyCronToPreset(currentCron);
+    updateScheduleUi();
+
+    presetSelect.addEventListener('change', updateScheduleUi);
+    dailyTime.addEventListener('change', syncCronFromPreset);
+    hourlyMinute.addEventListener('change', syncCronFromPreset);
+    scheduleForm.addEventListener('submit', syncCronFromPreset);
+
+    function fillNumericOptions(selectElement, maxExclusive) {
+        for (let value = 0; value < maxExclusive; value += 1) {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = String(value).padStart(2, '0');
+            selectElement.appendChild(option);
+        }
+    }
+
+    function applyCronToPreset(cron) {
+        const parts = String(cron).trim().split(/\s+/);
+        if (parts.length !== 6) {
+            presetSelect.value = 'custom';
+            return;
+        }
+
+        const [second, minute, hour, day, month, weekday] = parts;
+        if (second === '0' && day === '*' && month === '*' && weekday === '*') {
+            if (hour === '*') {
+                hourlyMinute.value = minute;
+                presetSelect.value = 'hourly';
+                return;
+            }
+
+            dailyTime.value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            presetSelect.value = 'daily';
+            return;
+        }
+
+        presetSelect.value = 'custom';
+    }
+
+    function selectedPreset() {
+        return presetSelect.value ?? 'daily';
+    }
+
+    function updateScheduleUi() {
+        const preset = selectedPreset();
+        setVisibility(dailyBuilder, preset === 'daily');
+        setVisibility(hourlyBuilder, preset === 'hourly');
+        setVisibility(customCronField, preset === 'custom');
+        syncCronFromPreset();
+    }
+
+    function syncCronFromPreset() {
+        const preset = selectedPreset();
+
+        if (preset === 'daily') {
+            const [hour, minute] = dailyTime.value.split(':');
+            cronInput.value = `0 ${minute} ${hour} * * *`;
+            return;
+        }
+
+        if (preset === 'hourly') {
+            cronInput.value = `0 ${hourlyMinute.value} * * * *`;
+        }
+    }
+
+    function setVisibility(element, visible) {
+        element.hidden = !visible;
+        element.classList.toggle('is-hidden', !visible);
+    }
+</script>
+</body>
+</html>
