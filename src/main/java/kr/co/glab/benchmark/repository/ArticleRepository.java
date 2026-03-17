@@ -23,9 +23,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                 article.collectedAt
             )
             from Article article
-            order by article.collectedAt desc
             """)
-    List<ArticleSummaryDto> findArticleSummariesOrderByCollectedAtDesc(Pageable pageable);
+    List<ArticleSummaryDto> findArticleSummaries(Pageable pageable);
 
     List<Article> findByCollectedAtBetween(LocalDateTime start, LocalDateTime end);
 

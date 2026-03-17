@@ -6,4 +6,6 @@ import kr.co.glab.benchmark.dto.ArticleSummaryDto;
 public interface ArticleService {
 
     List<ArticleSummaryDto> getRecentArticles();
+
+    List<ArticleSummaryDto> getRecentArticles(String sort);
 }
