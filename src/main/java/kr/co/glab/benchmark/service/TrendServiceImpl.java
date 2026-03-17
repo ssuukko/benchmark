@@ -1,9 +1,6 @@
 package kr.co.glab.benchmark.service;
 
-import java.time.LocalDate;
-import java.time.temporal.WeekFields;
 import java.util.List;
-import java.util.Locale;
 import kr.co.glab.benchmark.dto.TrendSummaryDto;
 import kr.co.glab.benchmark.entity.TrendStat;
 import kr.co.glab.benchmark.repository.TrendStatRepository;
@@ -15,6 +12,7 @@ import org.springframework.stereotype.Service;
 public class TrendServiceImpl implements TrendService {
 
     private final TrendStatRepository trendStatRepository;
+    private final WeekService weekService;
 
     @Override
     public List<TrendSummaryDto> getCurrentWeekSummary() {
@@ -27,10 +25,7 @@ public class TrendServiceImpl implements TrendService {
 
     @Override
     public String currentWeek() {
-        LocalDate now = LocalDate.now();
-        WeekFields weekFields = WeekFields.of(Locale.getDefault());
-        int week = now.get(weekFields.weekOfWeekBasedYear());
-        return "%d-W%02d".formatted(now.getYear(), week);
+        return weekService.currentWeek();
     }
 
     private TrendSummaryDto toSummary(TrendStat stat) {
