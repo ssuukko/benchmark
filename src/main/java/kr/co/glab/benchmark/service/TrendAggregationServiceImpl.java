@@ -36,10 +36,9 @@ public class TrendAggregationServiceImpl implements TrendAggregationService {
                 weekService.weekEnd(currentWeek)
         ).size();
 
-        trendStatRepository.deleteByWeek(currentWeek);
-
         for (String modelName : TRACKED_MODELS) {
-            TrendStat stat = new TrendStat();
+            TrendStat stat = trendStatRepository.findByWeekAndModelName(currentWeek, modelName)
+                    .orElseGet(TrendStat::new);
             stat.setModelName(modelName);
             stat.setWeek(currentWeek);
             stat.setMentionCount(currentCounts.getOrDefault(modelName, 0));

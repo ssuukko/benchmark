@@ -31,16 +31,14 @@
             <h2>This Week</h2>
             <span class="section-note" th:text="${currentWeek}"></span>
         </div>
-        <ul id="summary-list" class="summary-list" th:if="${!#lists.isEmpty(summary)}">
+        <ul id="summary-list" class="summary-list" th:attr="hidden=${#lists.isEmpty(summary)} ? 'hidden' : null">
             <li class="summary-item" th:each="item : ${summary}">
                 <strong th:text="${item.modelName}"></strong>
                 <span th:text="${item.mentionCount + ' mentions'}"></span>
                 <span th:text="${#numbers.formatDecimal(item.growthRate, 1, 1) + '% vs prev'}"></span>
             </li>
         </ul>
-        <ul id="summary-list" class="summary-list" th:if="${#lists.isEmpty(summary)}" hidden></ul>
-        <p id="summary-empty" class="empty-state" th:if="${#lists.isEmpty(summary)}">이번 주 집계 데이터가 아직 없습니다.</p>
-        <p id="summary-empty" class="empty-state" th:if="${!#lists.isEmpty(summary)}" hidden>이번 주 집계 데이터가 아직 없습니다.</p>
+        <p id="summary-empty" class="empty-state" th:attr="hidden=${!#lists.isEmpty(summary)} ? 'hidden' : null">이번 주 집계 데이터가 아직 없습니다.</p>
     </section>
 
     <section>
@@ -48,7 +46,7 @@
             <h2>Recent Articles</h2>
             <span class="section-note">latest 5</span>
         </div>
-        <div id="article-list" class="article-list" th:if="${!#lists.isEmpty(recentArticles)}">
+        <div id="article-list" class="article-list" th:attr="hidden=${#lists.isEmpty(recentArticles)} ? 'hidden' : null">
             <article class="article-card" th:each="article : ${recentArticles}">
                 <div class="article-meta">
                     <span class="source" th:text="${article.source}"></span>
@@ -62,9 +60,7 @@
                    th:text="${article.collectedAt != null ? #temporals.format(article.collectedAt, 'yyyy-MM-dd HH:mm') + ' collected' : 'collection time unavailable'}"></p>
             </article>
         </div>
-        <div id="article-list" class="article-list" th:if="${#lists.isEmpty(recentArticles)}" hidden></div>
-        <p id="article-empty" class="empty-state" th:if="${#lists.isEmpty(recentArticles)}">최근 게시글 데이터가 아직 없습니다.</p>
-        <p id="article-empty" class="empty-state" th:if="${!#lists.isEmpty(recentArticles)}" hidden>최근 게시글 데이터가 아직 없습니다.</p>
+        <p id="article-empty" class="empty-state" th:attr="hidden=${!#lists.isEmpty(recentArticles)} ? 'hidden' : null">최근 게시글 데이터가 아직 없습니다.</p>
     </section>
 </main>
 <script>
@@ -104,8 +100,7 @@
         summaryList.innerHTML = '';
 
         if (!summary || summary.length === 0) {
-            summaryList.hidden = true;
-            summaryEmpty.hidden = false;
+            toggleCollectionState(summaryList, summaryEmpty, false);
             return;
         }
 
@@ -120,16 +115,14 @@
             summaryList.appendChild(listItem);
         }
 
-        summaryList.hidden = false;
-        summaryEmpty.hidden = true;
+        toggleCollectionState(summaryList, summaryEmpty, true);
     }
 
     function renderArticles(articles) {
         articleList.innerHTML = '';
 
         if (!articles || articles.length === 0) {
-            articleList.hidden = true;
-            articleEmpty.hidden = false;
+            toggleCollectionState(articleList, articleEmpty, false);
             return;
         }
 
@@ -150,8 +143,12 @@
             articleList.appendChild(articleCard);
         }
 
-        articleList.hidden = false;
-        articleEmpty.hidden = true;
+        toggleCollectionState(articleList, articleEmpty, true);
+    }
+
+    function toggleCollectionState(listElement, emptyElement, hasItems) {
+        listElement.hidden = !hasItems;
+        emptyElement.hidden = hasItems;
     }
 
     function formatGrowthRate(value) {
