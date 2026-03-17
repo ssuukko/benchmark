@@ -3,3 +3,7 @@
 .idea/
 build/
 
+/out/production/resources/static/css/app.css
+/out/production/resources/application.yml
+/out/production/resources/templates/home.html
+/out/production/resources/rebel.xml
