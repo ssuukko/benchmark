@@ -12,18 +12,18 @@
         <p class="eyebrow">BenchMark</p>
         <h1>Developer community AI trend dashboard</h1>
         <p class="hero-copy" th:text="${currentWeek + ' 기준 언급량과 최근 게시글을 한 화면에서 확인합니다.'}"></p>
+        <div class="hero-actions">
+            <a class="nav-link" th:href="@{/admin/main}">Admin</a>
+        </div>
     </header>
 
     <section>
         <div class="section-head">
-            <h2>Collect Hacker News</h2>
-            <span class="section-note">manual trigger</span>
+            <h2>Automatic Collection</h2>
+            <span class="section-note" th:text="${schedulerEnabled ? 'scheduler on' : 'scheduler off'}"></span>
         </div>
-        <p class="section-copy">버튼을 누르면 Hacker News Top 10을 수집하고, 현재 주간 집계도 다시 계산합니다.</p>
-        <div class="action-row">
-            <button id="collect-hn-button" type="button">HN 수집 실행</button>
-        </div>
-        <p id="collect-status" class="action-status" hidden></p>
+        <p class="section-copy">Hacker News 수집은 지정한 스케줄에 따라 자동 실행됩니다.</p>
+        <p class="action-status">실행 시간: <strong th:text="${schedulerCron}"></strong> <span th:text="${schedulerZone}"></span></p>
     </section>
 
     <section>
@@ -44,7 +44,16 @@
     <section>
         <div class="section-head">
             <h2>Recent Articles</h2>
-            <span class="section-note">latest 5</span>
+            <div class="section-actions">
+                <span class="section-note">top 5</span>
+                <label class="sort-control" for="article-sort">
+                    <span class="sort-label">Sort</span>
+                    <select id="article-sort" name="articleSort">
+                        <option value="latest" th:selected="${articleSort == 'latest'}">Latest</option>
+                        <option value="score" th:selected="${articleSort == 'score'}">Top Score</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <div id="article-list" class="article-list" th:attr="hidden=${#lists.isEmpty(recentArticles)} ? 'hidden' : null">
             <article class="article-card" th:each="article : ${recentArticles}">
@@ -64,58 +73,40 @@
     </section>
 </main>
 <script>
-    const collectButton = document.getElementById('collect-hn-button');
-    const collectStatus = document.getElementById('collect-status');
-    const summaryList = document.getElementById('summary-list');
-    const summaryEmpty = document.getElementById('summary-empty');
     const articleList = document.getElementById('article-list');
     const articleEmpty = document.getElementById('article-empty');
+    const articleSortSelect = document.getElementById('article-sort');
+    const currentArticleSort = new URLSearchParams(window.location.search).get('articleSort') ?? 'latest';
 
-    collectButton.addEventListener('click', async () => {
-        collectButton.disabled = true;
-        collectStatus.hidden = false;
-        collectStatus.textContent = 'Hacker News 수집 중...';
+    articleSortSelect.value = currentArticleSort;
 
-        try {
-            const response = await fetch('/api/collect/hacker-news', {
-                method: 'POST'
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(JSON.stringify(result, null, 2));
-            }
-
-            renderSummary(result.summary);
-            renderArticles(result.recentArticles);
-            collectStatus.textContent = result.message ?? '수집 완료. 최신 목록과 집계를 반영했습니다.';
-        } catch (error) {
-            collectStatus.textContent = '수집 실행 중 오류가 발생했습니다.';
-        } finally {
-            collectButton.disabled = false;
-        }
+    articleSortSelect.addEventListener('change', async () => {
+        const nextSort = articleSortSelect.value;
+        syncArticleSortInUrl(nextSort);
+        await refreshArticles(nextSort);
     });
 
-    function renderSummary(summary) {
-        summaryList.innerHTML = '';
+    async function refreshArticles(sort) {
+        articleSortSelect.disabled = true;
 
-        if (!summary || summary.length === 0) {
-            toggleCollectionState(summaryList, summaryEmpty, false);
-            return;
+        try {
+            const response = await fetch(`/api/articles?sort=${encodeURIComponent(sort)}`);
+            const articles = await response.json();
+
+            if (!response.ok) {
+                throw new Error(JSON.stringify(articles, null, 2));
+            }
+
+            renderArticles(articles);
+        } finally {
+            articleSortSelect.disabled = false;
         }
+    }
 
-        for (const item of summary) {
-            const listItem = document.createElement('li');
-            listItem.className = 'summary-item';
-            listItem.innerHTML = `
-                <strong>${escapeHtml(item.modelName)}</strong>
-                <span>${item.mentionCount} mentions</span>
-                <span>${formatGrowthRate(item.growthRate)}% vs prev</span>
-            `;
-            summaryList.appendChild(listItem);
-        }
-
-        toggleCollectionState(summaryList, summaryEmpty, true);
+    function syncArticleSortInUrl(sort) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('articleSort', sort);
+        window.history.replaceState({}, '', nextUrl);
     }
 
     function renderArticles(articles) {
@@ -149,11 +140,6 @@
     function toggleCollectionState(listElement, emptyElement, hasItems) {
         listElement.hidden = !hasItems;
         emptyElement.hidden = hasItems;
-    }
-
-    function formatGrowthRate(value) {
-        const numeric = Number(value ?? 0);
-        return numeric.toFixed(1);
     }
 
     function formatCollectedAt(value) {
