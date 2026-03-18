@@ -1,9 +1,21 @@
+# Environment files
 .env
+.env.*
+!.env.example
+
+# Gradle
 .gradle/
-.idea/
 build/
 
-/out/production/resources/static/css/app.css
-/out/production/resources/application.yml
-/out/production/resources/templates/home.html
-/out/production/resources/rebel.xml
+# IDEs
+.idea/
+*.iml
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
