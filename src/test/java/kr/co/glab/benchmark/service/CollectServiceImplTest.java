@@ -44,6 +44,7 @@ class CollectServiceImplTest {
 
     @Test
     void collectHackerNewsTopStoriesAggregatesHandlerStatuses() {
+        // given
         HackerNewsItemDto invalidItem = item(1L);
         HackerNewsItemDto savedItem = item(2L);
         HackerNewsItemDto duplicateItem = item(3L);
@@ -63,12 +64,15 @@ class CollectServiceImplTest {
         );
         doNothing().when(processHandler).log(any(HackerNewsItemProcessContext.class));
 
+        // when
         HackerNewsCollectStatsDto stats = collectService.collectHackerNewsTopStories();
 
+        // then
         assertThat(stats.fetchedCount()).isEqualTo(3);
         assertThat(stats.savedCount()).isEqualTo(1);
         assertThat(stats.skippedCount()).isEqualTo(2);
         assertThat(stats.aiMatchedCount()).isEqualTo(2);
+
         assertThat(stats.duplicateCount()).isEqualTo(1);
         assertThat(stats.invalidCount()).isEqualTo(1);
         verify(trendAggregationService).refreshCurrentWeekStats();

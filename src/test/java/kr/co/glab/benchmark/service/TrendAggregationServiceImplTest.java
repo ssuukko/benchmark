@@ -54,6 +54,7 @@ class TrendAggregationServiceImplTest {
 
     @Test
     void refreshCurrentWeekStatsUpdatesExistingAndCreatesMissingStats() {
+        // given
         LocalDateTime currentStart = LocalDateTime.of(2026, 3, 16, 0, 0);
         LocalDateTime currentEnd = LocalDateTime.of(2026, 3, 22, 23, 59);
         LocalDateTime previousStart = LocalDateTime.of(2026, 3, 9, 0, 0);
@@ -83,8 +84,10 @@ class TrendAggregationServiceImplTest {
         when(trendStatRepository.findByWeekAndModelName("2026-W12", "CLAUDE")).thenReturn(Optional.empty());
         when(trendStatRepository.findByWeekAndModelName("2026-W12", "GEMINI")).thenReturn(Optional.empty());
 
+        // when
         trendAggregationService.refreshCurrentWeekStats();
 
+        // then
         verify(trendStatRepository).save(existingGpt);
         verify(trendStatRepository, org.mockito.Mockito.times(3)).save(trendStatCaptor.capture());
         List<TrendStat> savedStats = trendStatCaptor.getAllValues();

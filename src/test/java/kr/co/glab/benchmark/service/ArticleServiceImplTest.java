@@ -37,13 +37,16 @@ class ArticleServiceImplTest {
 
     @Test
     void getRecentArticlesUsesLatestSortByDefault() {
+        // given
         List<ArticleSummaryDto> summaries = List.of(
                 new ArticleSummaryDto("HACKERNEWS", 10, 2, "https://example.com", "title", LocalDateTime.now())
         );
         when(articleRepository.findArticleSummaries(any(Pageable.class))).thenReturn(summaries);
 
+        // when
         List<ArticleSummaryDto> result = articleService.getRecentArticles();
 
+        // then
         verify(articleRepository).findArticleSummaries(pageableCaptor.capture());
         Pageable pageable = pageableCaptor.getValue();
 
@@ -55,10 +58,13 @@ class ArticleServiceImplTest {
 
     @Test
     void getRecentArticlesSortsByScoreWhenRequested() {
+        // given
         when(articleRepository.findArticleSummaries(any(Pageable.class))).thenReturn(List.of());
 
+        // when
         articleService.getRecentArticles("score");
 
+        // then
         verify(articleRepository).findArticleSummaries(pageableCaptor.capture());
         Pageable pageable = pageableCaptor.getValue();
 

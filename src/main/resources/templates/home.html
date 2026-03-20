@@ -23,7 +23,7 @@
             <span class="section-note" th:text="${schedulerEnabled ? 'scheduler on' : 'scheduler off'}"></span>
         </div>
         <p class="section-copy">Hacker News 수집은 지정한 스케줄에 따라 자동 실행됩니다.</p>
-        <p class="action-status">실행 시간: <strong th:text="${schedulerCron}"></strong> <span th:text="${schedulerZone}"></span></p>
+        <p class="action-status">실행 시간: <strong th:text="${schedulerTime}"></strong> <span th:text="${schedulerZone}"></span></p>
     </section>
 
     <section>

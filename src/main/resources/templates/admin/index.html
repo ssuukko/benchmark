@@ -50,9 +50,9 @@
                     <p class="stat-note">관리 중인 작업 식별자</p>
                 </article>
                 <article class="stat-card">
-                    <span class="stat-label">Cron 표현식</span>
-                    <strong class="stat-value mono" th:text="${scheduler.cron}"></strong>
-                    <p class="stat-note">실제 실행 주기 기준</p>
+                    <span class="stat-label">실행 시간</span>
+                    <strong class="stat-value" th:text="${scheduler.getScheduleSummary()}"></strong>
+                    <p class="stat-note">매일 반복되는 자동 수집 시각</p>
                 </article>
                 <article class="stat-card">
                     <span class="stat-label">시간대</span>
@@ -72,7 +72,7 @@
                 </div>
                 <ol class="admin-steps">
                     <li>왼쪽 메뉴의 `시간 수정`으로 이동합니다.</li>
-                    <li>`Cron 표현식`과 `시간대`를 원하는 값으로 바꿉니다.</li>
+                    <li>`시`, `분`, `초`와 `시간대`를 원하는 값으로 바꿉니다.</li>
                     <li>`저장`을 누르면 다음 실행 시점부터 새 설정이 적용됩니다.</li>
                 </ol>
             </section>
@@ -85,9 +85,9 @@
                     </div>
                 </div>
                 <ul class="admin-guide compact">
-                    <li>매일 오전 9시: <code>0 0 9 * * *</code></li>
-                    <li>매일 오후 6시 30분: <code>0 30 18 * * *</code></li>
-                    <li>매시간 정각: <code>0 0 * * * *</code></li>
+                    <li>매일 오전 9시: <span class="example-time">09:00:00</span></li>
+                    <li>매일 오후 6시 30분: <span class="example-time">18:30:00</span></li>
+                    <li>매일 자정 5초 후: <span class="example-time">00:00:05</span></li>
                 </ul>
             </section>
         </div>

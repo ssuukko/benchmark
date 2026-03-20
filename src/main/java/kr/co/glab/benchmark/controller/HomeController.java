@@ -1,5 +1,6 @@
 package kr.co.glab.benchmark.controller;
 
+import java.util.List;
 import kr.co.glab.benchmark.service.ArticleService;
 import kr.co.glab.benchmark.service.SchedulerSettingsService;
 import kr.co.glab.benchmark.service.TrendService;
@@ -20,12 +21,12 @@ public class HomeController {
     @GetMapping("/")
     public String home(@RequestParam(defaultValue = "latest") String articleSort, Model model) {
         var scheduler = schedulerSettingsService.getHackerNewsSettings();
-        model.addAttribute("summary", trendService.getCurrentWeekSummary());
-        model.addAttribute("recentArticles", articleService.getRecentArticles(articleSort));
+        model.addAttribute("summary", trendService != null ? trendService.getCurrentWeekSummary() : List.of());
+        model.addAttribute("recentArticles", articleService != null ? articleService.getRecentArticles(articleSort) : List.of());
         model.addAttribute("articleSort", articleSort);
-        model.addAttribute("currentWeek", trendService.currentWeek());
+        model.addAttribute("currentWeek", trendService != null ? trendService.currentWeek() : "집계 없음");
         model.addAttribute("schedulerEnabled", scheduler.enabled());
-        model.addAttribute("schedulerCron", scheduler.cron());
+        model.addAttribute("schedulerTime", scheduler.scheduleSummary());
         model.addAttribute("schedulerZone", scheduler.zone());
         return "home";
     }
