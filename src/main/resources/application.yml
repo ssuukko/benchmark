@@ -17,6 +17,9 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+server:
+  port: ${PORT:8080}
+
 logging:
   level:
     org.hibernate.SQL: ${LOG_SQL:debug}
