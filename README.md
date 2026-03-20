@@ -78,14 +78,21 @@ BenchMark는 개발자 커뮤니티(HackerNews)에서 **상위 인기 게시글(
 | **결과 통계** | `fetched` · `saved` · `aiMatched` · `duplicate` · `invalid` · `skipped` **6개 지표** 추적 |
 
 > 📡 **수집 파이프라인 흐름**
->
-> ```
-> HackerNews Firebase API                      DB 저장
-> ┌──────────────────┐                    ┌──────────┐
-> │ /v0/topstories   │ ──▶ ID 30개 추출 ──▶ 개별 조회 ──▶ 평가 ──▶ 핸들러 체인 ──▶ │ articles │
-> │ /v0/item/{id}    │    (병렬 8스레드)              │                     │ + models │
-> └──────────────────┘                                                     └──────────┘
-> ```
+
+```mermaid
+flowchart LR
+    A["🌐 HackerNews API
+    /v0/topstories.json"] -->|ID 30개 추출| B["⚡ 병렬 조회
+    /v0/item/id.json
+    8스레드"]
+    B -->|각 아이템| C["🔍 평가
+    Evaluator"]
+    C -->|컨텍스트 생성| D["🔗 핸들러 체인
+    4단계 필터"]
+    D -->|SAVED| E["💾 DB 저장
+    articles +
+    article_models"]
+```
 
 ### 2️⃣ AI 모델 키워드 분석
 
@@ -133,61 +140,57 @@ BenchMark는 개발자 커뮤니티(HackerNews)에서 **상위 인기 게시글(
 
 ## 🏗 아키텍처 & 데이터 흐름
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Spring Scheduler                                 │
-│              (SchedulingConfigurer — DB 기반 동적 Cron)                  │
-│              ThreadPool: 1 스레드, prefix: "hacker-news-scheduler-"     │
-└──────────────────────────────┬───────────────────────────────────────────┘
-                               │ 트리거 (enabled=true일 때만)
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                      CollectServiceImpl                                  │
-│                                                                          │
-│  ① HackerNewsClientImpl.fetchTopStoryIds(30)                            │
-│       └─ RestClient → GET /v0/topstories.json                           │
-│                                                                          │
-│  ② HackerNewsClientImpl.fetchItems(ids)                                 │
-│       └─ CompletableFuture × 8 스레드 병렬 호출                          │
-│       └─ GET /v0/item/{id}.json (개별 조회)                              │
-│       └─ 실패 시 null 반환 → filter 제외 (graceful 에러 처리)            │
-│                                                                          │
-│  ③ 각 아이템 → Evaluator 평가 → Chain of Responsibility 핸들러 체인     │
-│       ┌──────────────────────────────────────────────┐                   │
-│       │  @Order(1) InvalidHandler   → INVALID        │ 삭제/비공개/제목없음│
-│       │  @Order(2) NonAiHandler     → NON_AI         │ AI 키워드 미포함  │
-│       │  @Order(3) DuplicateHandler → DUPLICATE      │ DB 중복 체크      │
-│       │  @Order(4) SaveHandler      → SAVED ✅       │ DB 저장           │
-│       └──────────────────────────────────────────────┘                   │
-│                                                                          │
-│  ④ HackerNewsCollectAccumulator — 6개 지표 누적 추적                    │
-│                                                                          │
-│  ⑤ TrendAggregationService.refreshCurrentWeekStats()                    │
-│       └─ 현재 주 + 이전 주 모델별 언급량 재집계                          │
-└──────────────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                     PostgreSQL (Neon Cloud)                               │
-│                                                                          │
-│    articles ────1:N───▶ article_models                                   │
-│    trend_stats          keyword_stats         weekly_reports             │
-│    scheduler_settings                                                    │
-│                                                                          │
-│    총 6개 테이블 · JPA ddl-auto: update · SSL 연결                       │
-└──────────────────────────────┬───────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                사용자 접속 (Thymeleaf SSR + Vanilla JS)                   │
-│                                                                          │
-│    GET  /              → 메인 대시보드 (SSR 렌더링)                      │
-│    GET  /api/articles  → AJAX 비동기 정렬 전환 (Fetch API)               │
-│    GET  /api/trends/summary → 트렌드 요약 JSON                          │
-│    GET  /admin/*       → 관리자 페이지 (스케줄 관리)                     │
-│    POST /admin/schedule → 스케줄 설정 변경                               │
-│    POST /api/collect/hacker-news → 수동 수집 트리거                      │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph SCHEDULER ["⏰ Spring Scheduler"]
+        direction LR
+        S1["SchedulingConfigurer\nDB 기반 동적 Cron"]
+        S2["ThreadPool: 1 스레드\nprefix: hacker-news-scheduler-"]
+    end
+
+    SCHEDULER -->|"트리거 (enabled=true)"| COLLECT
+
+    subgraph COLLECT ["⚙️ CollectServiceImpl"]
+        direction TB
+        C1["① fetchTopStoryIds 30\nRestClient → GET /v0/topstories.json"]
+        C2["② fetchItems\nCompletableFuture × 8스레드 병렬\nGET /v0/item/id.json\n실패 시 null → filter 제외"]
+        C3["③ Evaluator 평가 → 핸들러 체인"]
+
+        subgraph CHAIN ["Chain of Responsibility"]
+            H1["@Order 1 InvalidHandler → INVALID\n삭제/비공개/제목없음"]
+            H2["@Order 2 NonAiHandler → NON_AI\nAI 키워드 미포함"]
+            H3["@Order 3 DuplicateHandler → DUPLICATE\nDB 중복 체크"]
+            H4["@Order 4 SaveHandler → SAVED ✅\nDB 저장"]
+            H1 --> H2 --> H3 --> H4
+        end
+
+        C4["④ Accumulator — 6개 지표 누적 추적"]
+        C5["⑤ TrendAggregationService\n현재 주 + 이전 주 모델별 재집계"]
+
+        C1 --> C2 --> C3 --> CHAIN --> C4 --> C5
+    end
+
+    COLLECT --> DB
+
+    subgraph DB ["🗄️ PostgreSQL - Neon Cloud"]
+        direction LR
+        T1["articles\n1:N → article_models"]
+        T2["trend_stats"]
+        T3["keyword_stats"]
+        T4["weekly_reports"]
+        T5["scheduler_settings"]
+    end
+
+    DB --> CLIENT
+
+    subgraph CLIENT ["🖥️ 사용자 접속 - Thymeleaf SSR + Vanilla JS"]
+        direction TB
+        R1["GET / → 메인 대시보드 SSR"]
+        R2["GET /api/articles → AJAX 비동기 정렬"]
+        R3["GET /api/trends/summary → 트렌드 JSON"]
+        R4["GET /admin/* → 관리자 페이지"]
+        R5["POST /api/collect/hacker-news → 수동 수집"]
+    end
 ```
 
 ---
@@ -198,31 +201,25 @@ BenchMark는 개발자 커뮤니티(HackerNews)에서 **상위 인기 게시글(
 
 수집된 HackerNews 아이템은 **4단계 핸들러 체인**을 순서대로 거치며, 첫 번째로 `supports()` 조건을 만족하는 핸들러가 처리합니다:
 
-```
-HackerNewsItemDto
-    │
-    ▼  HackerNewsItemEvaluator.evaluate()
-    │  └── AI 모델 매칭 결과가 담긴 HackerNewsItemEvaluation 생성
-    │       └── 팩토리 메서드: invalid() / nonAi() / matched(models)
-    ▼
-HackerNewsItemProcessContext (item + evaluation 래핑)
-    │
-    ▼  processHandlers.stream().filter(supports).findFirst()
-┌────────────────────────────────┐
-│ ① InvalidHandler    (@Order 1) │ ── deleted/dead/title없음 → INVALID (스킵)
-└────────────┬───────────────────┘
-             ▼
-┌────────────────────────────────┐
-│ ② NonAiHandler      (@Order 2) │ ── AI 키워드 미포함 → NON_AI (스킵)
-└────────────┬───────────────────┘
-             ▼
-┌────────────────────────────────┐
-│ ③ DuplicateHandler  (@Order 3) │ ── DB에 이미 존재 → DUPLICATE (스킵)
-└────────────┬───────────────────┘
-             ▼
-┌────────────────────────────────┐
-│ ④ SaveHandler        (@Order 4) │ ── 모든 검증 통과 → 저장 → SAVED ✅
-└────────────────────────────────┘
+```mermaid
+flowchart TB
+    A["📥 HackerNewsItemDto"] -->|evaluate| B["🔍 HackerNewsItemEvaluator"]
+    B -->|"팩토리 메서드: invalid / nonAi / matched"| C["📋 HackerNewsItemEvaluation"]
+    C --> D["📦 HackerNewsItemProcessContext\nitem + evaluation 래핑"]
+    D -->|"stream.filter.findFirst"| E{"① InvalidHandler\n@Order 1"}
+    E -->|"deleted/dead/제목없음"| E_OUT["❌ INVALID 스킵"]
+    E -->|통과| F{"② NonAiHandler\n@Order 2"}
+    F -->|"AI 키워드 미포함"| F_OUT["❌ NON_AI 스킵"]
+    F -->|통과| G{"③ DuplicateHandler\n@Order 3"}
+    G -->|"DB에 이미 존재"| G_OUT["❌ DUPLICATE 스킵"]
+    G -->|통과| H["④ SaveHandler\n@Order 4"]
+    H --> H_OUT["✅ SAVED — DB 저장"]
+
+    style E fill:#fee2e2,stroke:#ef4444
+    style F fill:#fef3c7,stroke:#f59e0b
+    style G fill:#e0e7ff,stroke:#6366f1
+    style H fill:#d1fae5,stroke:#10b981
+    style H_OUT fill:#10b981,color:#fff,stroke:#059669
 ```
 
 **왜 이 패턴을 적용했나?**
@@ -238,23 +235,47 @@ HackerNewsItemProcessContext (item + evaluation 래핑)
 
 모든 서비스가 **인터페이스 + 구현체** 형태로 분리. 테스트 용이성과 구현체 교체 가능성 확보:
 
+```mermaid
+flowchart LR
+    subgraph Interface ["📐 Interface"]
+        I1[CollectService]
+        I2[HackerNewsClient]
+        I3[HackerNewsItemEvaluator]
+        I4[ArticleModelAnalyzer]
+        I5[ArticleIngestionService]
+        I6[ArticleService]
+        I7[TrendService]
+        I8[TrendAggregationService]
+        I9[WeekService]
+        I10[SchedulerSettingsService]
+    end
+
+    subgraph Impl ["🔧 Implementation"]
+        C1[CollectServiceImpl]
+        C2[HackerNewsClientImpl]
+        C3[HackerNewsItemEvaluatorImpl]
+        C4[ArticleModelAnalyzerImpl]
+        C5[ArticleIngestionServiceImpl]
+        C6[ArticleServiceImpl]
+        C7[TrendServiceImpl]
+        C8[TrendAggregationServiceImpl]
+        C9[WeekServiceImpl]
+        C10[SchedulerSettingsServiceImpl]
+    end
+
+    I1 --> C1
+    I2 --> C2
+    I3 --> C3
+    I4 --> C4
+    I5 --> C5
+    I6 --> C6
+    I7 --> C7
+    I8 --> C8
+    I9 --> C9
+    I10 --> C10
 ```
-┌──────────────────────────┐     ┌──────────────────────────────────┐
-│      Interface           │ ──▶ │         Implementation           │
-├──────────────────────────┤     ├──────────────────────────────────┤
-│ CollectService           │ ──▶ │ CollectServiceImpl               │
-│ HackerNewsClient         │ ──▶ │ HackerNewsClientImpl             │
-│ HackerNewsItemEvaluator  │ ──▶ │ HackerNewsItemEvaluatorImpl      │
-│ ArticleModelAnalyzer     │ ──▶ │ ArticleModelAnalyzerImpl         │
-│ ArticleIngestionService  │ ──▶ │ ArticleIngestionServiceImpl      │
-│ ArticleService           │ ──▶ │ ArticleServiceImpl               │
-│ TrendService             │ ──▶ │ TrendServiceImpl                 │
-│ TrendAggregationService  │ ──▶ │ TrendAggregationServiceImpl      │
-│ WeekService              │ ──▶ │ WeekServiceImpl                  │
-│ SchedulerSettingsService │ ──▶ │ SchedulerSettingsServiceImpl     │
-└──────────────────────────┘     └──────────────────────────────────┘
-                  총 10쌍의 인터페이스-구현체 분리
-```
+
+> 📌 **총 10쌍**의 인터페이스-구현체 분리 — 테스트 Mock 교체 용이, 구현체 확장 가능
 
 ### 🏭 3. Factory Method — 평가 결과 생성
 
@@ -544,31 +565,23 @@ src/main/resources/
 
 BenchMark의 스케줄러는 일반적인 `@Scheduled` 고정 Cron이 아니라, **DB에서 설정을 읽어 동적으로 Cron을 변경**할 수 있는 구조입니다:
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│            CollectSchedulingConfig                             │
-│            implements SchedulingConfigurer                     │
-│                                                               │
-│  ┌─────────────────────────────────────────────┐              │
-│  │  Trigger.nextExecution(TriggerContext)       │              │
-│  │                                             │              │
-│  │  ① DB에서 SchedulerSetting 조회             │              │
-│  │     └─ schedulerName = "hacker-news"        │              │
-│  │                                             │              │
-│  │  ② scheduler_name 불일치 → 1분 후 재확인    │              │
-│  │                                             │              │
-│  │  ③ enabled = false → 1분 후 재확인 (풀링)   │              │
-│  │     └─ collectHackerNews()에서도 한번 더 체크│              │
-│  │                                             │              │
-│  │  ④ enabled = true → CronTrigger 적용        │              │
-│  │     └─ new CronTrigger(cron, ZoneId.of(zone)│              │
-│  │     └─ 다음 실행 시각을 동적으로 결정        │              │
-│  └─────────────────────────────────────────────┘              │
-│                                                               │
-│  첫 실행 시 DB에 행이 없으면                                   │
-│  application.yml 기본값으로 자동 생성                          │
-│  (SchedulerSettingsServiceImpl에서 처리)                      │
-└───────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph CONFIG ["⚙️ CollectSchedulingConfig implements SchedulingConfigurer"]
+        direction TB
+        T["Trigger.nextExecution"] --> Q1["① DB에서 SchedulerSetting 조회\nschedulerName = hacker-news"]
+        Q1 --> Q2{"scheduler_name\n일치?"}
+        Q2 -->|불일치| WAIT1["⏳ 1분 후 재확인"]
+        Q2 -->|일치| Q3{"enabled?"}
+        Q3 -->|false| WAIT2["⏳ 1분 후 재확인\ncollectHackerNews에서도 재확인"]
+        Q3 -->|true| CRON["✅ CronTrigger 적용\nnew CronTrigger cron, ZoneId\n다음 실행 시각 동적 결정"]
+    end
+
+    INIT["🚀 첫 실행 시 DB에 행이 없으면\napplication.yml 기본값으로 자동 생성"] -.-> CONFIG
+
+    style CRON fill:#d1fae5,stroke:#10b981
+    style WAIT1 fill:#fef3c7,stroke:#f59e0b
+    style WAIT2 fill:#fef3c7,stroke:#f59e0b
 ```
 
 ### ⚙️ 스케줄 설정 옵션
